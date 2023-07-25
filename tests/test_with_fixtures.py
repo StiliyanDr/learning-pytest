@@ -135,7 +135,7 @@ def test_fixtures_are_evaluated_once_per_test(
     assert order == [first_entry]
 
 
-# We can make a fixture an autouse fixture (always used even when not
+# We can make a fixture an autouse fixture (always used, even when not
 # requested explicitly) by passing in autouse=True to the fixture’s
 # decorator
 @pytest.fixture(autouse=True)
@@ -274,49 +274,52 @@ def test_email_is_received(sending_user, receiving_user, email):
 # so that the ACT step is run once and reused for all the tests. Finally
 # we will have a test method for each thing we want to test
 #
-@pytest.fixture(scope="class")
-def admin_client(base_url, admin_credentials):
-    return AdminApiClient(base_url, **admin_credentials)
+
+# base_url and admin_credentials are some fixtures
+#@pytest.fixture(scope="class")
+#def admin_client(base_url, admin_credentials):
+#    return AdminApiClient(base_url, admin_credentials)
 
 
-@pytest.fixture(scope="class")
-def user(admin_client):
-    _user = User(name="Susan",
-                 username=f"testuser-{uuid4()}",
-                 password="P4$$word")
-    admin_client.create_user(_user)
-    yield _user
-    admin_client.delete_user(_user)
+#@pytest.fixture(scope="class")
+#def user(admin_client):
+#    _user = User(name="Susan",
+#                 username=f"testuser-{uuid4()}",
+#                 password="P4$$word")
+#    admin_client.create_user(_user)
+#    yield _user
+#    admin_client.delete_user(_user)
 
 
-@pytest.fixture(scope="class")
-def driver():
-    _driver = Chrome()
-    yield _driver
-    _driver.quit()
+#@pytest.fixture(scope="class")
+#def driver():
+#    _driver = Chrome()
+#    yield _driver
+#    _driver.quit()
 
 
-@pytest.fixture(scope="class")
-def landing_page(driver, login):
-    return LandingPage(driver)
+#@pytest.fixture(scope="class")
+#def landing_page(driver, login):
+#    return LandingPage(driver)
 
 
-class TestLandingPageSuccess:
-    @pytest.fixture(scope="class", autouse=True)
-    def login(self, driver, base_url, user):
-        driver.get(urljoin(base_url, "/login"))
-        page = LoginPage(driver)
-        page.login(user)
+#class TestLandingPageSuccess:
+#    @pytest.fixture(scope="class", autouse=True)
+#    def login(self, driver, base_url, user):
+#        driver.get(urljoin(base_url, "/login"))
+#        page = LoginPage(driver)
+#        page.login(user)
+#
+#    def test_name_in_header(self, landing_page, user):
+#        assert landing_page.header == f"Welcome, {user.name}!"
+#
+#    def test_sign_out_button(self, landing_page):
+#        assert landing_page.sign_out_button.is_displayed()
+#
+#    def test_profile_link(self, landing_page, user):
+#        profile_href = urljoin(base_url, f"/profile?id={user.profile_id}")
+#        assert landing_page.profile_link.get_attribute("href") == profile_href
 
-    def test_name_in_header(self, landing_page, user):
-        assert landing_page.header == f"Welcome, {user.name}!"
-
-    def test_sign_out_button(self, landing_page):
-        assert landing_page.sign_out_button.is_displayed()
-
-    def test_profile_link(self, landing_page, user):
-        profile_href = urljoin(base_url, f"/profile?id={user.profile_id}")
-        assert landing_page.profile_link.get_attribute("href") == profile_href
 
 # Notice that the methods are only referencing self in the signature as
 # a formality. No state is tied to the actual test class as it might be
@@ -402,7 +405,8 @@ def make_customer_record():
     yield _make_customer_record
 
     for record in created_records:
-        record.destroy()
+        pass
+        #record.destroy()
 
 
 # Parameterising fixtures
@@ -423,7 +427,7 @@ def smtp_connection(request):
 # first execute with one instance and then finalisers are called before
 # the next fixture instance is created
 # https://pytest.org/en/7.4.x/how-to/fixtures.html#automatic-grouping-of-tests-by-fixture-instances
-
+# for mod_fixture: for class_fixture: for test_fixture: test
 
 #
 # Applying fixtures with `usefixtures`
@@ -448,8 +452,8 @@ def clean_dir():
 # Due to the usefixtures marker, the clean_dir fixture will be required
 # for the execution of each test method, just as if we specified a
 # “clean_dir” function argument to each of them
-# @pytest.mark.usefixtures("cleandir", "another_fixture", ...)
-@pytest.mark.usefixtures("cleandir")
+# @pytest.mark.usefixtures("clean_dir", "another_fixture", ...)
+@pytest.mark.usefixtures("clean_dir")
 class TestDirectoryInit:
     def test_cwd_starts_empty(self):
         assert os.listdir(os.getcwd()) == []
@@ -473,7 +477,7 @@ class TestDirectoryInit:
 #
 # Fixtures can be defined in conftest.py files, e.g. tests/conftest.py
 # or tests/subtests/conftest.py, and used in various modules. pytest
-# then uses the following precedence:
+# then uses the following precedence (at lookup time):
 #  1) module level defined fixtures
 #  2) subfolder defined fixtures in conftest.py
 #  3) superfolder defined fixtures in conftest.py
