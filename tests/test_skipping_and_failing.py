@@ -50,13 +50,13 @@ def test_function():
 
 
 # We can share skipif markers between modules
-minversion = pytest.mark.skipif(
+skip_if_pytest_lt_7_4 = pytest.mark.skipif(
     pytest.__versioninfo__ < (7, 4),
     reason="At least pytest-7.4 required"
 )
 
 
-@minversion
+@skip_if_pytest_lt_7_4
 def test_function():
     pass
 
