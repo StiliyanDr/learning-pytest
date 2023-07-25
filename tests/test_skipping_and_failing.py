@@ -51,7 +51,7 @@ def test_function():
 
 # We can share skipif markers between modules
 skip_if_pytest_lt_7_4 = pytest.mark.skipif(
-    pytest.__versioninfo__ < (7, 4),
+    pytest.__version__ < "7.4",
     reason="At least pytest-7.4 required"
 )
 
