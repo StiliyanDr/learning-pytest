@@ -334,6 +334,19 @@ def test_mocking_nested_calls():
     assert mock.mock_calls == expected
 
 
+# Listing calls to the mock as a callable
+def test_listing_callable_calls():
+    mock = MagicMock()
+    expected = [call(1, 2), call("str"), call(False, 3.14)]
+
+    mock(1, 2)
+    mock.method(1, 2)
+    mock("str")
+    mock(False, 3.14)
+
+    assert mock.call_args_list == expected
+
+
 #
 # Patching
 # https://docs.python.org/3.8/library/unittest.mock-examples.html#patch-decorators
@@ -342,6 +355,7 @@ def test_mocking_nested_calls():
 
 # Patching a class within a module
 # When the module is imported
+#  Note: imagine mypkg.Foo is used in the module we are testing
 @patch("mypkg.Foo")
 def test_patching_imported_module_class(foo_mock):
     assert mypkg.Foo is foo_mock
@@ -349,6 +363,8 @@ def test_patching_imported_module_class(foo_mock):
 
 # Patching a class within a module
 # When the class is imported
+#  Note: imagine this import is done in the module we are testing;
+#  we'd patch moduleundertest.Foo
 from mypkg import Foo
 
 
@@ -436,3 +452,62 @@ def test_patching_dict_entire_value():
 
     with patch.dict(d, {"c": 3}, clear=True):
         assert d == {"c": 3}
+
+
+# Patching multiple tests in a test case
+@patch("mypkg.Foo")
+class TestPatchingManyMethods:
+    def test_one(self, FooMock):
+        assert mypkg.Foo is FooMock
+
+    def test_two(self, FooMock):
+        assert mypkg.Foo is FooMock
+
+    def not_a_test(self):
+        return None
+
+
+#
+# Mocking a dictionary
+#
+my_dict = {'a': 1, 'b': 2, 'c': 3}
+def getitem(name):
+    return my_dict[name]
+
+def setitem(name, val):
+    my_dict[name] = val
+
+
+def test_mocking_a_dictionary():
+    mock = MagicMock()
+    mock.__getitem__.side_effect = getitem
+    mock.__setitem__.side_effect = setitem
+
+    mock["x"] = 10
+    mock["y"] = 20
+
+    assert mock["a"] == 1
+    assert mock["c"] == 3
+
+    assert mock.__getitem__.call_args_list == [
+        call("a"),
+        call("c")
+    ]
+    assert mock.__setitem__.call_args_list == [
+        call("x", 10),
+        call("y", 20)
+    ]
+
+
+# Checking that certain calls were made
+#  any_order=True if order doesnt matter
+def test_checking_certain_calls_were_made():
+    mock = MagicMock()
+
+    mock.f()
+    mock.item.g()
+    mock.h().f()
+
+    mock.assert_has_calls(
+        call.h().f().call_list()
+    )
