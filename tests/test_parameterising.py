@@ -36,5 +36,5 @@ class TestClass:
 #
 @pytest.mark.parametrize("x", [0, 0])
 @pytest.mark.parametrize("y", [1, 2])
-def test_function(x, y):
+def test_function(y, x):
     assert x + y == y
