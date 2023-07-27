@@ -37,7 +37,8 @@ from mypkg import (
 # discussed later)
 #
 class MyClass:
-    pass
+    def calculate(self, n, is_something, key):
+        return n + int(is_something) + len(key)
 
 
 #
@@ -91,7 +92,7 @@ def test_my_func_passes_x_and_adds_10():
     result = my_func_callable(c, x)
 
     assert result == 15
-    c.assert_called_once_with(10)
+    c.assert_called_once_with(x)
 
 
 #
@@ -161,8 +162,8 @@ def my_f():
 
 
 @patch("mypkg.Foo")
-def test_patching_a_class(Foo):
-    instance = Foo.return_value
+def test_patching_a_class(foo_mock):
+    instance = foo_mock.return_value
     instance.method.return_value = "bar"
 
     result = my_f()
@@ -171,8 +172,8 @@ def test_patching_a_class(Foo):
 
 
 def test_patching_a_class_cm():
-    with patch("mypkg.Foo") as Foo:
-        instance = Foo.return_value
+    with patch("mypkg.Foo") as foo_mock:
+        instance = foo_mock.return_value
         instance.method.return_value = "baz"
 
         result = my_f()
@@ -194,10 +195,10 @@ def test_mocking_str():
 
 
 # The difference between Mock and MagicMock - special/magic methods
+# are mocks for MagicMock; created explicitly for Mock
 def test_mocking_str_without_magic():
     mock = Mock()
-    mock.__str__ = Mock()
-    mock.__str__.return_value = "val"
+    mock.__str__ = Mock(return_value="val")
 
     result = str(mock)
 
@@ -209,7 +210,7 @@ def test_mocking_str_without_magic():
 # Mocking but keeping a certain specification
 # Useful as not to couple tests to client code:
 #  when the class changes, the mock should adapt so as not to keep
-#  passing the tests
+#  the tests passing
 #
 class C:
     def __init__(self):
@@ -232,7 +233,8 @@ def test_simple_speccing_does_not_go_beyond_attribute_names():
     mock.method(123)
 
     mock.method.assert_called_once_with(123)
-    mock.method.asrrrrrrrt_called_once() # typo!
+    # typo, no such method on a mock!
+    mock.method.asrrrrrrrt_called_once()
 
 
 #
@@ -282,6 +284,10 @@ def test_mocking_callable_spec():
     c = Callable()
     mock = create_autospec(c)
 
+    mock(12)
+
+    mock.assert_called_once_with(12)
+
     with pytest.raises(TypeError):
         mock(1, 2)
 
@@ -290,6 +296,7 @@ def test_mocking_callable_spec():
 def test_mocking_object_spec():
     c = Callable()
     mock = create_autospec(c)
+
     mock.method(3)
 
     mock.method.assert_called_once_with(3)
@@ -299,7 +306,7 @@ def test_mocking_object_spec():
 
 
 #
-# Listing calls to mocks
+# Listing calls to mocks (including child mocks)
 #
 def test_checking_all_calls():
     mock = MagicMock()
@@ -312,7 +319,7 @@ def test_checking_all_calls():
 
 
 # Arguments of nested calls are not tracked!
-def test_arguments_in_calls_are_not_tracked():
+def test_arguments_of_nested_calls_are_not_tracked():
     mock = MagicMock()
 
     mock.method(key="value").f()
@@ -320,10 +327,12 @@ def test_arguments_in_calls_are_not_tracked():
     assert mock.mock_calls[-1] == call.method(key="v").f()
 
 
-# Mocking nested calls
-def test_mocking_nested_calls():
+# Listing nested calls
+def test_listing_nested_calls():
     mock = Mock()
+
     # mock.connection.cursor()
+    # obtain the resulting mock
     cursor = mock.connection.cursor.return_value
     # cursor.execute()
     cursor.execute.return_value = ["foo"]
@@ -345,6 +354,20 @@ def test_listing_callable_calls():
     mock(False, 3.14)
 
     assert mock.call_args_list == expected
+
+
+# Checking that certain calls were made
+#  any_order=True if order doesnt matter
+def test_checking_certain_calls_were_made():
+    mock = MagicMock()
+
+    mock.f()
+    mock.item.g()
+    mock.h().f()
+
+    mock.assert_has_calls(
+        call.h().f().call_list()
+    )
 
 
 #
@@ -385,7 +408,7 @@ class SomeClass:
 
 # Patching a class attribute
 @patch.object(SomeClass, "get")
-def test_patching_class_method_test(get_mock):
+def test_patching_class_method(get_mock):
     instance = SomeClass(0)
     get_mock.return_value = 100
 
@@ -444,7 +467,7 @@ def test_patching_dict_adding_values():
     d = {"a": 1, "b": 2}
 
     with patch.dict(d, {"c": 3}):
-        assert d == {"a": 1, "b":2, "c": 3}
+        assert d == {"a": 1, "b": 2, "c": 3}
 
 
 def test_patching_dict_entire_value():
@@ -497,17 +520,3 @@ def test_mocking_a_dictionary():
         call("x", 10),
         call("y", 20)
     ]
-
-
-# Checking that certain calls were made
-#  any_order=True if order doesnt matter
-def test_checking_certain_calls_were_made():
-    mock = MagicMock()
-
-    mock.f()
-    mock.item.g()
-    mock.h().f()
-
-    mock.assert_has_calls(
-        call.h().f().call_list()
-    )
